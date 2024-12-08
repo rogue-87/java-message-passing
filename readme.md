@@ -4,11 +4,11 @@ you must have [maven](https://maven.apache.org/) installed on your system
 
 ### How to compile and run
 
-1. run `mvn install` `inside client` and `server`
+1. run `mvn install` inside `client` and `server`
 
 2. run `mvn exec:java` inside `server`
 
-3. run `mvn exec:java` inside client
+3. run `mvn exec:java` inside `client`
 
 ### Things you can do
 
