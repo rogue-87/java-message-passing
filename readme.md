@@ -12,6 +12,8 @@ you must have [maven](https://maven.apache.org/) installed on your system
 
 ### Things you can do
 
-1. the client can send a message to the server and that message will be displayed on the server terminal session.
+1. ~~the client can send a message to the server and that message will be displayed on the server terminal session.~~
 
-2. send `marco` to the server, and it will reply back to the client with `polo`.
+2. ~~send `marco` to the server, and it will reply back to the client with `polo`.~~
+
+both server and client can talk to each other!

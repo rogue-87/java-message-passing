@@ -5,13 +5,22 @@ import java.net.ServerSocket;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
+import java.io.DataOutputStream;
 
 public class Server {
 
 	// init socket and input stream
 	private ServerSocket server = null;
 	private Socket client = null;
+
+	// to send data to client
+	private DataOutputStream dos = null;
+	// read data from client
+	private BufferedReader br = null;
+	// read data from keyboard
+	private BufferedReader kb = null;
+
+	private volatile String inputStr = "";
 
 	/**
 	 * server that waits for client to connect
@@ -23,47 +32,59 @@ public class Server {
 			// create server
 			server = new ServerSocket(port);
 
-			System.out.printf("%sServer started!%s\n", Color.YELLOW, Color.RESET);
+			System.out.printf("%sServer started!%s\n", Colors.YELLOW, Colors.RESET);
+			System.out.printf("%sWaiting for client...%s\n", Colors.YELLOW, Colors.RESET);
 
-			System.out.printf("%sWaiting for client...%s\n", Color.YELLOW, Color.RESET);
-
-			// connect server to client
+			// will wait until a client connects to the server
 			client = server.accept();
-			System.out.printf("%sConnection established!%s\n", Color.GREEN, Color.RESET);
+			System.out.printf("%sConnection established!%s\n", Colors.GREEN, Colors.RESET);
 
-			// send data to client
-			PrintStream ps = new PrintStream(client.getOutputStream());
-			// read data from client
-			BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
+			dos = new DataOutputStream(client.getOutputStream());
+			br = new BufferedReader(new InputStreamReader(client.getInputStream()));
+			kb = new BufferedReader(new InputStreamReader(System.in));
 
-			String line1 = "", line2 = "";
-
-			// reads messages from client until "quit" is sent
-			while (!line1.equals("quit")) {
-				line1 = br.readLine();
-				switch (line1) {
-					case "marco":
-						System.out.printf("%sCLIENT:%s %s\n", Color.YELLOW, Color.RESET, line1);
-						System.out.printf("%sResponding to client...%s\n", Color.BLUE, Color.RESET);
-						ps.println(String.format("%sSERVER:%s polo", Color.BLUE, Color.RESET));
-						break;
-					default:
-						System.out.printf("%sCLIENT:%s %s\n", Color.YELLOW, Color.RESET, line1);
-						break;
+			Thread senderThread = new Thread(() -> {
+				try {
+					do {
+						inputStr = kb.readLine();
+						System.out.printf("%sSERVER:%s %s\n", Colors.BLUE, Colors.RESET, inputStr);
+						dos.writeBytes(inputStr + "\n");
+					} while (!inputStr.equals("quit"));
+				} catch (IOException ioE) {
+					System.out.println(ioE);
+					return;
 				}
-			}
-			System.out.printf("%sClosing connection...%s\n", Color.YELLOW, Color.RESET);
+			});
+
+			Thread recieverThread = new Thread(() -> {
+				try {
+					String recievedData = null;
+					do {
+						recievedData = br.readLine();
+						System.out.printf("%sCLIENT:%s %s\n", Colors.YELLOW, Colors.RESET, recievedData);
+					} while (!inputStr.equals("quit"));
+				} catch (IOException ioE) {
+					System.out.println(ioE);
+					return;
+				}
+			});
+
+			senderThread.start();
+			recieverThread.start();
+
+			senderThread.join();
+			recieverThread.join();
 
 			// close connection
+			System.out.printf("%sClosing connection...%s\n", Colors.YELLOW, Colors.RESET);
+			dos.close();
 			br.close();
-			ps.close();
+			kb.close();
 			server.close();
 			client.close();
 
-			System.exit(0);
-
-		} catch (IOException ioE) {
-			System.err.println(String.format("%s %s %s\n", Color.RED, ioE, Color.RESET));
+		} catch (IOException | InterruptedException e) {
+			System.err.println(String.format("%s %s %s\n", Colors.RED, e, Colors.RESET));
 		}
 	}
 

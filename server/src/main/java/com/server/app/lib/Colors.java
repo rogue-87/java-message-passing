@@ -1,6 +1,6 @@
 package com.server.app.lib;
 
-enum Color {
+enum Colors {
 	// Color end string, color reset
 	RESET("\033[0m"),
 
@@ -76,7 +76,7 @@ enum Color {
 
 	private final String code;
 
-	Color(String code) {
+	Colors(String code) {
 		this.code = code;
 	}
 

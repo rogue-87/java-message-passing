@@ -5,68 +5,80 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
-import java.net.UnknownHostException;
 
 /**
  * client that connects to a server
  */
 public class Client {
 	// init socket and input out streams
-	private Socket socket = null;
+	private Socket server = null;
+	// to send data to server
 	private DataOutputStream dos = null;
+	// read data from server
 	private BufferedReader br = null;
+	// read data from keyboard
 	private BufferedReader kb = null;
+
+	private volatile String inputStr = "";
 
 	public Client(String address, int port) {
 		// establish connection
 		try {
 
-			System.out.printf("%sEstablishing connection...%s\n", Color.YELLOW, Color.RESET);
-			// create client socket
-			socket = new Socket(address, port);
-			System.out.printf("%sConnected!%s\n", Color.GREEN, Color.RESET);
+			System.out.printf("%sEstablishing connection...%s\n", Colors.YELLOW, Colors.RESET);
 
-			// send data to server
-			dos = new DataOutputStream(socket.getOutputStream());
-			// read data coming from server
-			br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			// read data from keyboard
+			// create client socket
+			server = new Socket(address, port);
+			System.out.printf("%sConnected!%s\n", Colors.GREEN, Colors.RESET);
+
+			dos = new DataOutputStream(server.getOutputStream());
+			br = new BufferedReader(new InputStreamReader(server.getInputStream()));
 			kb = new BufferedReader(new InputStreamReader(System.in));
 
-			// string to read message from input
-			String line1 = "", line2 = "";
-
-			// keep reading until "quit" is input
-			do {
-				line1 = kb.readLine();
-				switch (line1) {
-					case "marco":
-						dos.writeBytes(line1 + "\n");
-						line2 = br.readLine();
-						System.out.println(line2);
-						break;
-					default:
-						// send to the server
-						dos.writeBytes(line1 + "\n");
-						break;
+			Thread senderThread = new Thread(() -> {
+				try {
+					do {
+						inputStr = kb.readLine();
+						System.out.printf("%sCLIENT:%s %s\n", Colors.YELLOW, Colors.RESET, inputStr);
+						dos.writeBytes(inputStr + "\n");
+					} while (!inputStr.equals("quit"));
+				} catch (IOException ioE) {
+					System.out.println(ioE);
+					return;
 				}
-			} while (!line1.equals("quit"));
+			});
 
+			Thread recieverThread = new Thread(() -> {
+				try {
+					String recievedData = null;
+					do {
+						recievedData = br.readLine();
+						System.out.printf("%sSERVER:%s %s\n", Colors.BLUE, Colors.RESET, recievedData);
+					} while (!inputStr.equals("quit"));
+				} catch (IOException ioE) {
+					System.out.println(ioE);
+					return;
+				}
+			});
+
+			senderThread.start();
+			recieverThread.start();
+
+			// program will wait until both threads stop running
+			senderThread.join();
+			recieverThread.join();
+
+			// close connection after joining threads
+			System.out.printf("%sClosing connection...%s\n", Colors.YELLOW, Colors.RESET);
 			dos.close();
 			br.close();
 			kb.close();
-			socket.close();
+			server.close();
 
-		} catch (UnknownHostException uhE) {
-
-			System.err.println(String.format("%s %s %s", Color.RED, uhE.toString(), Color.RESET));
-			return;
-		} catch (IOException ioE) {
-
-			System.err.println(String.format("%s %s %s", Color.RED, ioE.toString(), Color.RESET));
+		} catch (IOException | InterruptedException e) {
+			System.err.println(String.format("%s %s %s", Colors.RED, e, Colors.RESET));
 			return;
 		}
-
 	}
 
 }
